@@ -12,7 +12,7 @@ pipeline {
             steps {
                 echo "Cloning repo..."
                 git branch: 'main',
-                    url: 'https://github.com/betawins/Python-app.git'
+                    url: 'https://github.com/mujaheed00/Python-app.git'
             }
         }
 
