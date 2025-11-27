@@ -1,35 +1,56 @@
 pipeline {
-    agent any 
-    environment {
-    DOCKERHUB_CREDENTIALS = credentials('s3cloudhub-dockerhub')
-    }
-    stages { 
+    agent any
 
-        stage('Build docker image') {
-            steps {  
-                sh ' docker build -t vatsraj/pythonapp:$BUILD_NUMBER .'
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub-creds')
+        IMAGE_NAME = "mujaheed00/python-app"
+    }
+
+    stages {
+
+        stage('Clone Repository') {
+            steps {
+                echo "Cloning repo..."
+                git branch: 'main',
+                    url: 'https://github.com/betawins/Python-app.git'
             }
         }
-        stage('login to dockerhub') {
-            steps{
-                sh 'echo $DOCKERHUB_CREDENTIALS_PSW | docker login -u $DOCKERHUB_CREDENTIALS_USR --password-stdin'
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Building Docker image..."
+                sh """
+                    docker build -t ${IMAGE_NAME}:latest .
+                """
             }
         }
-        stage('push image') {
-            steps{
-                sh ' docker push vatsraj/pythonapp:$BUILD_NUMBER'
+
+        stage('Docker Login') {
+            steps {
+                echo "Logging into Docker Hub..."
+                sh """
+                    echo ${DOCKERHUB_CREDENTIALS_PSW} | docker login -u ${DOCKERHUB_CREDENTIALS_USR} --password-stdin
+                """
             }
         }
-}
-post {
+
+        stage('Push Image') {
+            steps {
+                echo "Pushing Docker image..."
+                sh """
+                    docker push ${IMAGE_NAME}:latest
+                """
+            }
+        }
+    }
+
+    post {
         always {
-            sh 'docker logout'
-        }
-success {
-                slackSend message: "Build deployed successfully - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
+            script {
+                echo "Pipeline finished!"
+                sh "docker images"
             }
-    failure {
-        slackSend message: "Build failed  - ${env.JOB_NAME} ${env.BUILD_NUMBER} (<${env.BUILD_URL}|Open>)"
-    }
+        }
     }
 }
+
